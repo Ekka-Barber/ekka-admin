@@ -113,14 +113,12 @@ const showSuccess = (message) => {
 const showLoading = () => {
     if (isLoading) return;
     isLoading = true;
-    if (!document.querySelector('.loader-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.className = 'loader-overlay';
-        const loader = document.createElement('div');
-        loader.className = 'loader';
-        overlay.appendChild(loader);
-        document.body.appendChild(overlay);
-    }
+    const overlay = document.createElement('div');
+    overlay.className = 'loader-overlay';
+    const loader = document.createElement('div');
+    loader.className = 'loader';
+    overlay.appendChild(loader);
+    document.body.appendChild(overlay);
 };
 
 const hideLoading = () => {
@@ -141,7 +139,7 @@ const showModal = (title, content) => {
         modalTitle.textContent = title;
         modalForm.innerHTML = content;
         modal.style.display = 'block';
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        document.body.style.overflow = 'hidden';
         
         setTimeout(() => {
             const firstInput = modalForm.querySelector('input');
@@ -156,7 +154,7 @@ const hideModal = () => {
     const modal = document.getElementById('edit-modal');
     if (modal) {
         modal.style.display = 'none';
-        document.body.style.overflow = ''; // Restore scrolling
+        document.body.style.overflow = '';
         document.getElementById('modal-form').innerHTML = '';
     }
 };
@@ -168,7 +166,7 @@ const renderServices = (categoryId, services) => {
     }
 
     return Object.entries(services)
-        .sort((a, b) => a[1].price - b[1].price) // Sort by price
+        .sort((a, b) => a[1].price - b[1].price)
         .map(([serviceId, service]) => `
             <div class="service-item" id="service-${serviceId}">
                 <div class="service-details">
@@ -326,17 +324,20 @@ const updateCategoriesUI = (categories) => {
 // Initialize Data Listeners
 const initializeDataListeners = () => {
     showLoading();
-    Promise.all([
-        db.ref('categories').once('value'),
-        db.ref('barbers').once('value')
-    ]).then(([categoriesSnapshot, barbersSnapshot]) => {
-        updateCategoriesUI(categoriesSnapshot.val());
-        updateBarbersUI(barbersSnapshot.val());
-    }).catch((error) => {
-        showError(translations['error-occurred'][currentLanguage]);
-        console.error(error);
-    }).finally(() => {
+    db.ref('categories').on('value', (snapshot) => {
+        updateCategoriesUI(snapshot.val());
         hideLoading();
+    }, (error) => {
+        console.error("Error fetching categories:", error);
+        showError(translations['error-occurred'][currentLanguage]);
+        hideLoading();
+    });
+
+    db.ref('barbers').on('value', (snapshot) => {
+        updateBarbersUI(snapshot.val());
+    }, (error) => {
+        console.error("Error fetching barbers:", error);
+        showError(translations['error-occurred'][currentLanguage]);
     });
 };
 
@@ -345,6 +346,322 @@ document.addEventListener('DOMContentLoaded', () => {
     debugDatabase.checkConnection();
     initializeDataListeners();
 
-    document.getElementById('add-category-btn')?.addEventListener('click', () => addCategory());
-    document.getElementById('add-barber-btn')?.addEventListener('click', () => addBarber());
+    document.getElementById('add-category-btn')?.addEventListener('click', addCategory);
+    document.getElementById('add-barber-btn')?.addEventListener('click', addBarber);
+
+    // Language switcher
+    document.querySelectorAll('.language-option').forEach(option => {
+        option.addEventListener('click', () => {
+            currentLanguage = option.dataset.lang;
+            document.body.setAttribute('dir', currentLanguage === 'ar' ? 'rtl' : 'ltr');
+            document.querySelectorAll('.language-option').forEach(opt => opt.classList.toggle('active'));
+            updateUI();
+        });
+    });
+
+    // Tab switching
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            activeTab = button.dataset.tab;
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${activeTab}-content`).classList.add('active');
+        });
+    });
 });
+
+// Add missing functions
+const addCategory = async () => {
+    const newCategory = {
+        ar: translations['new-category'].ar,
+        en: translations['new-category'].en
+    };
+    try {
+        showLoading();
+        await db.ref('categories').push(newCategory);
+        showSuccess(translations['success-add'][currentLanguage]);
+    } catch (error) {
+        handleDatabaseError(error, 'adding category');
+    } finally {
+        hideLoading();
+    }
+};
+
+const editCategory = async (categoryId) => {
+    try {
+        showLoading();
+        const snapshot = await db.ref(`categories/${categoryId}`).once('value');
+        const category = snapshot.val();
+
+        if (!category) {
+            showError('Category not found');
+            return;
+        }
+
+        const formHTML = `
+            <div class="form-group">
+                <label>${translations['category-name'][currentLanguage]} (عربي):</label>
+                <input type="text" id="edit-category-name-ar" value="${category.ar}" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['category-name'][currentLanguage]} (English):</label>
+                <input type="text" id="edit-category-name-en" value="${category.en}" required>
+            </div>
+            <button onclick="submitCategoryEdit('${categoryId}')" class="submit-button">
+                ${translations['save'][currentLanguage]}
+            </button>
+        `;
+        showModal(translations['edit'][currentLanguage], formHTML);
+    } catch (error) {
+        handleDatabaseError(error, 'editing category');
+    } finally {
+        hideLoading();
+    }
+};
+
+const submitCategoryEdit = async (categoryId) => {
+    const updatedData = {
+        ar: document.getElementById('edit-category-name-ar').value.trim(),
+        en: document.getElementById('edit-category-name-en').value.trim()
+    };
+
+    if (!updatedData.ar || !updatedData.en) {
+        showError(translations['required-fields'][currentLanguage]);
+        return;
+    }
+
+    try {
+        showLoading();
+        await db.ref(`categories/${categoryId}`).update(updatedData);
+        hideModal();
+        showSuccess(translations['success-update'][currentLanguage]);
+    } catch (error) {
+        handleDatabaseError(error, 'updating category');
+    } finally {
+        hideLoading();
+    }
+};
+
+const deleteCategory = async (categoryId) => {
+    if (!confirm(translations['confirm-delete'][currentLanguage])) return;
+
+    try {
+        showLoading();
+        await db.ref(`categories/${categoryId}`).remove();
+        showSuccess(translations['success-delete'][currentLanguage]);
+    } catch (error) {
+        handleDatabaseError(error, 'deleting category');
+    } finally {
+        hideLoading();
+    }
+};
+
+const addService = (categoryId) => {
+    const formHTML = `
+        <div class="form-group">
+            <label>${translations['service-name'][currentLanguage]} (عربي):</label>
+            <input type="text" id="add-service-name-ar" required>
+        </div>
+        <div class="form-group">
+            <label>${translations['service-name'][currentLanguage]} (English):</label>
+            <input type="text" id="add-service-name-en" required>
+        </div>
+        <div class="form-group">
+            <label>${translations['duration'][currentLanguage]}:</label>
+            <input type="text" id="add-service-duration" required>
+        </div>
+        <div class="form-group">
+            <label>${translations['price'][currentLanguage]}:</label>
+            <input type="number" id="add-service-price" min="0" step="1" required>
+        </div>
+        <div class="form-group">
+            <label>${translations['description'][currentLanguage]} (عربي):</label>
+            <textarea id="add-service-description-ar"></textarea>
+        </div>
+        <div class="form-group">
+            <label>${translations['description'][currentLanguage]} (English):</label>
+            <textarea id="add-service-description-en"></textarea>
+        </div>
+        <button onclick="submitAddService('${categoryId}')" class="submit-button">
+            ${translations['add'][currentLanguage]}
+        </button>
+    `;
+    showModal(translations['new-service'][currentLanguage], formHTML);
+};
+
+const submitAddService = async (categoryId) => {
+    const newService = {
+        name_ar: document.getElementById('add-service-name-ar').value.trim(),
+        name_en: document.getElementById('add-service-name-en').value.trim(),
+        duration: document.getElementById('add-service-duration').value.trim(),
+        price: parseInt(document.getElementById('add-service-price').value),
+        description_ar: document.getElementById('add-service-description-ar').value.trim(),
+        description_en: document.getElementById('add-service-description-en').value.trim()
+    };
+
+    if (!newService.name_ar || !newService.name_en || !newService.duration || isNaN(newService.price)) {
+        showError(translations['required-fields'][currentLanguage]);
+        return;
+    }
+
+    try {
+        showLoading();
+        await db.ref(`categories/${categoryId}/services`).push(newService);
+        hideModal();
+        showSuccess(translations['success-add'][currentLanguage]);
+    } catch (error) {
+        handleDatabaseError(error, 'adding service');
+    } finally {
+        hideLoading();
+    }
+};
+
+const addBarber = async () => {
+    const newBarber = {
+        name: translations['new-barber'][currentLanguage],
+        status: 'active'
+    };
+    try {
+        showLoading();
+        await db.ref('barbers').push(newBarber);
+        showSuccess(translations['success-add'][currentLanguage]);
+    } catch (error) {
+        handleDatabaseError(error, 'adding barber');
+    } finally {
+        hideLoading();
+    }
+};
+
+const updateBarbersUI = (barbers) => {
+    const container = document.getElementById('barbers-list');
+    if (!container) {
+        console.error("Barbers container not found");
+        return;
+    }
+
+    if (!barbers) {
+        container.innerHTML = `<p class="no-data">${translations['no-barbers'][currentLanguage]}</p>`;
+        return;
+    }
+
+    container.innerHTML = '';
+    Object.entries(barbers).forEach(([barberId, barber]) => {
+        const barberElement = document.createElement('div');
+        barberElement.className = 'barber-item';
+        barberElement.innerHTML = `
+            <div class="barber-header">
+                <h3>${barber.name}</h3>
+                <div class="barber-status">
+                    <span class="status-indicator ${barber.status}">${translations[barber.status][currentLanguage]}</span>
+                </div>
+            </div>
+            <div class="barber-actions">
+                <button onclick="editBarber('${barberId}')" class="edit-button">
+                    ${translations['edit'][currentLanguage]}
+                </button>
+                <button onclick="toggleBarberStatus('${barberId}', '${barber.status}')" class="toggle-button">
+                    ${translations[barber.status === 'active' ? 'inactive' : 'active'][currentLanguage]}
+                </button>
+                <button onclick="deleteBarber('${barberId}')" class="delete-button">
+                    ${translations['delete'][currentLanguage]}
+                </button>
+            </div>
+        `;
+        container.appendChild(barberElement);
+    });
+};
+
+const editBarber = async (barberId) => {
+    try {
+        showLoading();
+        const snapshot = await db.ref(`barbers/${barberId}`).once('value');
+        const barber = snapshot.val();
+
+        if (!barber) {
+            showError('Barber not found');
+            return;
+        }
+
+        const formHTML = `
+            <div class="form-group">
+                <label>${translations['barber-name'][currentLanguage]}:</label>
+                <input type="text" id="edit-barber-name" value="${barber.name}" required>
+            </div>
+            <button onclick="submitBarberEdit('${barberId}')" class="submit-button">
+                ${translations['save'][currentLanguage]}
+            </button>
+        `;
+        showModal(translations['edit'][currentLanguage], formHTML);
+    } catch (error) {
+        handleDatabaseError(error, 'editing barber');
+    } finally {
+        hideLoading();
+    }
+};
+
+const submitBarberEdit = async (barberId) => {
+    const updatedData = {
+        name: document.getElementById('edit-barber-name').value.trim()
+    };
+
+    if (!updatedData.name) {
+        showError(translations['required-fields'][currentLanguage]);
+        return;
+    }
+
+    try {
+        showLoading();
+        await db.ref(`barbers/${barberId}`).update(updatedData);
+        hideModal();
+        showSuccess(translations['success-update'][currentLanguage]);
+    } catch (error) {
+        handleDatabaseError(error, 'updating barber');
+    } finally {
+        hideLoading();
+    }
+};
+
+const toggleBarberStatus = async (barberId, currentStatus) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    try {
+        showLoading();
+        await db.ref(`barbers/${barberId}`).update({ status: newStatus });
+        showSuccess(translations['success-update'][currentLanguage]);
+    } catch (error) {
+        handleDatabaseError(error, 'toggling barber status');
+    } finally {
+        hideLoading();
+    }
+};
+
+const deleteBarber = async (barberId) => {
+    if (!confirm(translations['confirm-delete'][currentLanguage])) return;
+
+    try {
+        showLoading();
+        await db.ref(`barbers/${barberId}`).remove();
+        showSuccess(translations['success-delete'][currentLanguage]);
+    } catch (error) {
+        handleDatabaseError(error, 'deleting barber');
+    } finally {
+        hideLoading();
+    }
+};
+
+const handleDatabaseError = (error, action) => {
+    console.error(`Error ${action}:`, error);
+    showError(translations['error-occurred'][currentLanguage]);
+};
+
+const updateUI = () => {
+    document.getElementById('main-title').textContent = translations['admin-panel'][currentLanguage];
+    document.querySelectorAll('[data-translate]').forEach(element => {
+        const key = element.dataset.translate;
+        if (translations[key]) {
+            element.textContent = translations[key][currentLanguage];
+        }
+    });
+    updateCategoriesUI(db.ref('categories'));
+    updateBarbersUI(db.ref('barbers'));
+};
