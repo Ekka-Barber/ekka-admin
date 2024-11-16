@@ -12,8 +12,8 @@
     <link rel="stylesheet" href="styles.css">
 
     <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
     <!-- Language Switcher -->
@@ -29,20 +29,19 @@
 
     <!-- Main Admin Container -->
     <div class="admin-container">
-        <h1 id="main-title">لوحة التحكم</h1>
+        <h1 id="main-title" data-translate="admin-panel">لوحة التحكم</h1>
 
         <!-- Admin Tabs -->
         <div class="admin-tabs">
-            <button class="tab-button active" data-tab="categories">الفئات والخدمات</button>
-            <button class="tab-button" data-tab="barbers">الحلاقين</button>
-            <button class="tab-button" data-tab="settings">الإعدادات</button>
+            <button class="tab-button active" data-tab="categories" data-translate="categories-services">الفئات والخدمات</button>
+            <button class="tab-button" data-tab="barbers" data-translate="barbers-management">الحلاقين</button>
+            <button class="tab-button" data-tab="settings" data-translate="settings">الإعدادات</button>
         </div>
 
         <!-- Categories Content -->
         <div id="categories-content" class="tab-content active">
             <div class="action-bar">
-                <button id="add-category" class="add-button">إضافة فئة جديدة</button>
-                <button id="add-category-btn" class="add-button">إضافة فئة جديدة</button>
+                <button id="add-category-btn" class="add-button" data-translate="new-category">إضافة فئة جديدة</button>
             </div>
             <div id="categories-list" class="categories-list">
                 <!-- Categories will be loaded here dynamically -->
@@ -52,8 +51,7 @@
         <!-- Barbers Content -->
         <div id="barbers-content" class="tab-content">
             <div class="action-bar">
-                <button id="add-barber" class="add-button">إضافة حلاق جديد</button>
-                <button id="add-barber-btn" class="add-button">إضافة حلاق جديد</button>
+                <button id="add-barber-btn" class="add-button" data-translate="new-barber">إضافة حلاق جديد</button>
             </div>
             <div id="barbers-list" class="barbers-list">
                 <!-- Barbers will be loaded here dynamically -->
@@ -63,7 +61,7 @@
         <!-- Settings Content -->
         <div id="settings-content" class="tab-content">
             <div class="settings-form">
-                <h2>إعدادات عامة</h2>
+                <h2 data-translate="settings">الإعدادات</h2>
                 <!-- Settings form will be added here -->
             </div>
         </div>
@@ -73,7 +71,7 @@
     <div id="edit-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
-            <h2 id="modal-title">تعديل</h2>
+            <h2 id="modal-title"></h2>
             <div id="modal-form">
                 <!-- Modal content will be loaded here dynamically -->
             </div>
