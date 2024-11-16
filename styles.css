@@ -484,3 +484,95 @@ button:active {
         display: none !important;
     }
 }
+
+/* Barber item styles */
+.barber-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.barber-info {
+    flex-grow: 1;
+}
+
+.barber-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.barber-status {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.barber-working-hours {
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* Status indicator styles */
+.status-indicator {
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.8em;
+}
+
+.status-indicator.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.status-indicator.inactive {
+    background-color: #F44336;
+    color: white;
+}
+
+/* Working hours input styles */
+.working-hours-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.working-hours-inputs input[type="time"] {
+    width: 100px;
+}
+
+/* Notification styles */
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.notification {
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.notification.success {
+    background-color: var(--success-color);
+}
+
+.notification.error {
+    background-color: var(--error-color);
+}
+
+.notification.show {
+    opacity: 1;
+}
+
+/* Adjust for RTL */
+body[dir="rtl"] #notification-container {
+    left: 20px;
+    right: auto;
+}
