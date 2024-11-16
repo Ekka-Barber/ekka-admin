@@ -1,7 +1,4 @@
 // Firebase Configuration and Initialization
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set, push, remove, update, get } from 'firebase/database';
-
 const firebaseConfig = {
     apiKey: "AIzaSyA0Syrv4XH88PTzQUaSg6vQaZlZMJ_85n8",
     authDomain: "ekka-barbershop.firebaseapp.com",
@@ -14,8 +11,8 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 // Global State Management
 let currentLanguage = 'ar';
@@ -25,8 +22,8 @@ let isLoading = false;
 // Debug Utilities
 const debugDatabase = {
     checkConnection: () => {
-        const connRef = ref(db, '.info/connected');
-        onValue(connRef, (snap) => {
+        const connRef = db.ref('.info/connected');
+        connRef.on('value', (snap) => {
             if (snap.val() === true) {
                 console.log('✅ Connected to Firebase');
             } else {
@@ -39,14 +36,14 @@ const debugDatabase = {
         console.group('Firebase Data Access Test');
         try {
             // Test categories access
-            const categoriesSnap = await get(ref(db, 'categories'));
+            const categoriesSnap = await db.ref('categories').once('value');
             console.log('Categories data:', categoriesSnap.exists() ? '✅ Available' : '❌ No data');
             if (categoriesSnap.exists()) {
                 console.log('Categories count:', Object.keys(categoriesSnap.val()).length);
             }
 
             // Test barbers access
-            const barbersSnap = await get(ref(db, 'barbers'));
+            const barbersSnap = await db.ref('barbers').once('value');
             console.log('Barbers data:', barbersSnap.exists() ? '✅ Available' : '❌ No data');
             if (barbersSnap.exists()) {
                 console.log('Barbers count:', Object.keys(barbersSnap.val()).length);
@@ -129,18 +126,14 @@ const showSuccess = (message) => {
 const showLoading = () => {
     if (isLoading) return;
     isLoading = true;
-    const overlay = document.createElement('div');
-    overlay.className = 'loader-overlay';
-    const loader = document.createElement('div');
-    loader.className = 'loader';
-    overlay.appendChild(loader);
-    document.body.appendChild(overlay);
+    const loader = document.getElementById('loader');
+    if (loader) loader.style.display = 'block';
 };
 
 const hideLoading = () => {
     isLoading = false;
-    const overlay = document.querySelector('.loader-overlay');
-    if (overlay) overlay.remove();
+    const loader = document.getElementById('loader');
+    if (loader) loader.style.display = 'none';
 };
 
 const showModal = (title, content) => {
@@ -156,22 +149,15 @@ const hideModal = () => {
 };
 
 const handleDatabaseError = (error, operation = 'database operation') => {
-    const errorMessage = `Error during ${operation}: ${error.message}`;
-    console.error(errorMessage, error);
+    console.error(`Error during ${operation}:`, error);
     showError(translations['error-occurred'][currentLanguage]);
-    console.group('Error Details');
-    console.log('Error Code:', error.code);
-    console.log('Error Message:', error.message);
-    console.log('Operation:', operation);
-    console.log('Current Language:', currentLanguage);
-    console.groupEnd();
 };
 // Categories and Services Management
 const initializeDataListeners = () => {
     showLoading();
     
-    // Create a promise for each data fetch
-    const fetchCategories = get(ref(db, 'categories'))
+    // Fetch categories data
+    db.ref('categories').once('value')
         .then(snapshot => {
             if (snapshot.exists()) {
                 updateCategoriesUI(snapshot.val());
@@ -185,7 +171,8 @@ const initializeDataListeners = () => {
             handleDatabaseError(error, 'fetching categories');
         });
 
-    const fetchBarbers = get(ref(db, 'barbers'))
+    // Fetch barbers data
+    db.ref('barbers').once('value')
         .then(snapshot => {
             if (snapshot.exists()) {
                 updateBarbersUI(snapshot.val());
@@ -197,13 +184,28 @@ const initializeDataListeners = () => {
         .catch(error => {
             console.error("Error fetching barbers:", error);
             handleDatabaseError(error, 'fetching barbers');
-        });
-
-    // Wait for all data to be fetched
-    Promise.all([fetchCategories, fetchBarbers])
+        })
         .finally(() => {
             hideLoading();
         });
+
+    // Set up real-time listeners
+    setupRealtimeListeners();
+};
+
+// Setup Realtime Listeners
+const setupRealtimeListeners = () => {
+    db.ref('categories').on('value', (snapshot) => {
+        updateCategoriesUI(snapshot.val());
+    }, (error) => {
+        handleDatabaseError(error, 'realtime categories update');
+    });
+
+    db.ref('barbers').on('value', (snapshot) => {
+        updateBarbersUI(snapshot.val());
+    }, (error) => {
+        handleDatabaseError(error, 'realtime barbers update');
+    });
 };
 
 // Update Categories UI
@@ -222,7 +224,7 @@ const updateCategoriesUI = (categories) => {
     try {
         container.innerHTML = '';
         Object.entries(categories).forEach(([categoryId, category]) => {
-            if (!category) return; // Skip if category is null or undefined
+            if (!category) return;
             
             const categoryElement = document.createElement('div');
             categoryElement.className = 'category-item';
@@ -290,8 +292,8 @@ window.submitNewCategory = async () => {
 
     try {
         showLoading();
-        const newCategoryRef = push(ref(db, 'categories'));
-        await set(newCategoryRef, { 
+        const newCategoryRef = db.ref('categories').push();
+        await newCategoryRef.set({ 
             ar: nameAr, 
             en: nameEn, 
             services: {} 
@@ -305,81 +307,7 @@ window.submitNewCategory = async () => {
     }
 };
 
-// Edit Category
-window.editCategory = async (categoryId) => {
-    try {
-        showLoading();
-        const categorySnapshot = await get(ref(db, `categories/${categoryId}`));
-        const category = categorySnapshot.val();
-
-        if (!category) {
-            showError('Category not found');
-            return;
-        }
-
-        const formHTML = `
-            <div class="form-group">
-                <label>${translations['category-name'][currentLanguage]} (عربي):</label>
-                <input type="text" id="edit-category-name-ar" value="${category.ar}" required>
-            </div>
-            <div class="form-group">
-                <label>${translations['category-name'][currentLanguage]} (English):</label>
-                <input type="text" id="edit-category-name-en" value="${category.en}" required>
-            </div>
-            <button class="submit-button" onclick="submitCategoryEdit('${categoryId}')">
-                ${translations['save'][currentLanguage]}
-            </button>
-        `;
-        showModal(translations['edit'][currentLanguage], formHTML);
-    } catch (error) {
-        handleDatabaseError(error, 'editing category');
-    } finally {
-        hideLoading();
-    }
-};
-
-// Submit Category Edit
-window.submitCategoryEdit = async (categoryId) => {
-    const updatedData = {
-        ar: document.getElementById('edit-category-name-ar').value.trim(),
-        en: document.getElementById('edit-category-name-en').value.trim()
-    };
-
-    if (!updatedData.ar || !updatedData.en) {
-        showError(translations['fill-required'][currentLanguage]);
-        return;
-    }
-
-    try {
-        showLoading();
-        await update(ref(db, `categories/${categoryId}`), updatedData);
-        hideModal();
-        showSuccess(translations['success-update'][currentLanguage]);
-    } catch (error) {
-        handleDatabaseError(error, 'updating category');
-    } finally {
-        hideLoading();
-    }
-};
-
-// Delete Category
-window.deleteCategory = async (categoryId) => {
-    if (!confirm(translations['confirm-delete'][currentLanguage])) {
-        return;
-    }
-
-    try {
-        showLoading();
-        await remove(ref(db, `categories/${categoryId}`));
-        showSuccess(translations['success-delete'][currentLanguage]);
-    } catch (error) {
-        handleDatabaseError(error, 'deleting category');
-    } finally {
-        hideLoading();
-    }
-};
-
-// Add Service to Category
+// Add Service
 window.addService = (categoryId) => {
     const formHTML = `
         <div class="form-group">
@@ -411,6 +339,35 @@ window.addService = (categoryId) => {
         </button>
     `;
     showModal(translations['new-service'][currentLanguage], formHTML);
+};
+
+// Submit New Service
+window.submitNewService = async (categoryId) => {
+    const serviceData = {
+        name_ar: document.getElementById('service-name-ar').value.trim(),
+        name_en: document.getElementById('service-name-en').value.trim(),
+        duration: document.getElementById('service-duration').value.trim(),
+        price: parseInt(document.getElementById('service-price').value),
+        description_ar: document.getElementById('service-description-ar').value.trim(),
+        description_en: document.getElementById('service-description-en').value.trim()
+    };
+
+    if (!serviceData.name_ar || !serviceData.name_en || !serviceData.duration || !serviceData.price) {
+        showError(translations['required-fields'][currentLanguage]);
+        return;
+    }
+
+    try {
+        showLoading();
+        const newServiceRef = db.ref(`categories/${categoryId}/services`).push();
+        await newServiceRef.set(serviceData);
+        hideModal();
+        showSuccess(translations['success-add'][currentLanguage]);
+    } catch (error) {
+        handleDatabaseError(error, 'adding service');
+    } finally {
+        hideLoading();
+    }
 };
 // Barbers Management
 const updateBarbersUI = (barbers) => {
@@ -490,8 +447,8 @@ window.submitNewBarber = async () => {
 
     try {
         showLoading();
-        const newBarberRef = push(ref(db, 'barbers'));
-        await set(newBarberRef, barberData);
+        const newBarberRef = db.ref('barbers').push();
+        await newBarberRef.set(barberData);
         hideModal();
         showSuccess(translations['success-add'][currentLanguage]);
     } catch (error) {
@@ -505,8 +462,8 @@ window.submitNewBarber = async () => {
 window.editBarber = async (barberId) => {
     try {
         showLoading();
-        const barberSnapshot = await get(ref(db, `barbers/${barberId}`));
-        const barber = barberSnapshot.val();
+        const snapshot = await db.ref(`barbers/${barberId}`).once('value');
+        const barber = snapshot.val();
 
         if (!barber) {
             showError('Barber not found');
@@ -571,7 +528,7 @@ window.submitBarberEdit = async (barberId) => {
 
     try {
         showLoading();
-        await update(ref(db, `barbers/${barberId}`), updatedData);
+        await db.ref(`barbers/${barberId}`).update(updatedData);
         hideModal();
         showSuccess(translations['success-update'][currentLanguage]);
     } catch (error) {
@@ -585,7 +542,7 @@ window.submitBarberEdit = async (barberId) => {
 window.toggleBarberStatus = async (barberId, newStatus) => {
     try {
         showLoading();
-        await update(ref(db, `barbers/${barberId}`), { active: newStatus });
+        await db.ref(`barbers/${barberId}`).update({ active: newStatus });
         showSuccess(
             currentLanguage === 'ar' 
                 ? `تم ${newStatus ? 'تفعيل' : 'إيقاف'} الحلاق بنجاح` 
@@ -606,7 +563,7 @@ window.deleteBarber = async (barberId) => {
 
     try {
         showLoading();
-        await remove(ref(db, `barbers/${barberId}`));
+        await db.ref(`barbers/${barberId}`).remove();
         showSuccess(translations['success-delete'][currentLanguage]);
     } catch (error) {
         handleDatabaseError(error, 'deleting barber');
@@ -659,62 +616,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === modal) hideModal();
     });
 
-    // Add Category Button
-    const addCategoryButton = document.getElementById('add-category');
-    if (addCategoryButton) {
-        addCategoryButton.addEventListener('click', () => {
-            const formHTML = `
-                <div class="form-group">
-                    <label>${translations['category-name'][currentLanguage]} (عربي):</label>
-                    <input type="text" id="category-name-ar" required>
-                </div>
-                <div class="form-group">
-                    <label>${translations['category-name'][currentLanguage]} (English):</label>
-                    <input type="text" id="category-name-en" required>
-                </div>
-                <button class="submit-button" onclick="submitNewCategory()">
-                    ${translations['add'][currentLanguage]}
-                </button>
-            `;
-            showModal(translations['new-category'][currentLanguage], formHTML);
-        });
-    }
-
-    // Add Barber Button
-    const addBarberButton = document.getElementById('add-barber');
-    if (addBarberButton) {
-        addBarberButton.addEventListener('click', () => {
-            const formHTML = `
-                <div class="form-group">
-                    <label>${translations['barber-name'][currentLanguage]} (عربي):</label>
-                    <input type="text" id="barber-name-ar" required>
-                </div>
-                <div class="form-group">
-                    <label>${translations['barber-name'][currentLanguage]} (English):</label>
-                    <input type="text" id="barber-name-en" required>
-                </div>
-                <div class="form-group">
-                    <label>${translations['start-time'][currentLanguage]}:</label>
-                    <input type="time" id="working-hours-start" required>
-                </div>
-                <div class="form-group">
-                    <label>${translations['end-time'][currentLanguage]}:</label>
-                    <input type="time" id="working-hours-end" required>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="barber-active" checked>
-                        ${translations['active'][currentLanguage]}
-                    </label>
-                </div>
-                <button class="submit-button" onclick="submitNewBarber()">
-                    ${translations['add'][currentLanguage]}
-                </button>
-            `;
-            showModal(translations['new-barber'][currentLanguage], formHTML);
-        });
-    }
-
     // Initialize data listeners
     initializeDataListeners();
 });
+
+// Update language throughout the UI
+const updateLanguage = () => {
+    document.getElementById('main-title').textContent = translations['admin-panel'][currentLanguage];
+    
+    // Update all translatable elements
+    document.querySelectorAll('[data-translate]').forEach(element => {
+        const key = element.dataset.translate;
+        if (translations[key]) {
+            element.textContent = translations[key][currentLanguage];
+        }
+    });
+
+    // Refresh current view
+    if (activeTab === 'categories') {
+        db.ref('categories').once('value').then(snapshot => {
+            updateCategoriesUI(snapshot.val());
+        });
+    } else if (activeTab === 'barbers') {
+        db.ref('barbers').once('value').then(snapshot => {
+            updateBarbersUI(snapshot.val());
+        });
+    }
+};
