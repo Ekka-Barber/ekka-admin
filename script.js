@@ -56,7 +56,8 @@ const translations = {
         serviceNameAr: 'اسم الخدمة (عربي)',
         serviceNameEn: 'اسم الخدمة (إنجليزي)',
         servicePrice: 'سعر الخدمة',
-        serviceDuration: 'مدة الخدمة'
+        serviceDuration: 'مدة الخدمة',
+        editService: 'تعديل الخدمة'
     },
     en: {
         adminPanel: 'Admin Panel',
@@ -88,7 +89,8 @@ const translations = {
         serviceNameAr: 'Service Name (Arabic)',
         serviceNameEn: 'Service Name (English)',
         servicePrice: 'Service Price',
-        serviceDuration: 'Service Duration'
+        serviceDuration: 'Service Duration',
+        editService: 'Edit Service'
     }
 };
 
@@ -600,6 +602,61 @@ function updateServicesUI(categoryId, services) {
     });
 }
 
+// Open edit service modal
+function openEditServiceModal(categoryId, serviceId, service) {
+    const modalTitle = document.getElementById('modal-title');
+    const modalForm = document.getElementById('modal-form');
+
+    modalTitle.textContent = translations[currentLanguage].editService;
+    modalForm.innerHTML = `
+        <div class="form-group">
+            <label for="service-name-ar">${translations[currentLanguage].serviceNameAr}</label>
+            <input type="text" id="service-name-ar" value="${service.name_ar || ''}">
+        </div>
+        <div class="form-group">
+            <label for="service-name-en">${translations[currentLanguage].serviceNameEn}</label>
+            <input type="text" id="service-name-en" value="${service.name_en || ''}">
+        </div>
+        <div class="form-group">
+            <label for="service-price">${translations[currentLanguage].servicePrice}</label>
+            <input type="number" id="service-price" min="0" step="1" value="${service.price || 0}">
+        </div>
+        <div class="form-group">
+            <label for="service-duration">${translations[currentLanguage].serviceDuration}</label>
+            <input type="text" id="service-duration" value="${service.duration || ''}">
+        </div>
+        <button type="button" id="save-service">${translations[currentLanguage].save}</button>
+    `;
+
+    const saveButton = modalForm.querySelector('#save-service');
+    saveButton.addEventListener('click', () => {
+        const updatedService = {
+            name_ar: document.getElementById('service-name-ar').value,
+            name_en: document.getElementById('service-name-en').value,
+            price: parseInt(document.getElementById('service-price').value) || 0,
+            duration: document.getElementById('service-duration').value
+        };
+        updateService(categoryId, serviceId, updatedService);
+        closeModal();
+    });
+
+    modal.style.display = 'block';
+}
+
+// Update service
+function updateService(categoryId, serviceId, updatedService) {
+    showLoader();
+    database.ref(`categories/${categoryId}/services/${serviceId}`).update(updatedService)
+        .then(() => {
+            hideLoader();
+            showNotification(translations[currentLanguage].successMessage, 'success');
+        })
+        .catch((error) => {
+            hideLoader();
+            console.error("Error updating service:", error);
+            showNotification(translations[currentLanguage].errorMessage, 'error');
+        });
+}
 
 // Add service
 function addService(categoryId, service) {
