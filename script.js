@@ -215,9 +215,14 @@ function updateBarbersUI(barbers) {
         barberElement.className = 'barber-item';
         barberElement.innerHTML = `
             <div class="barber-header">
-                <h3>${barber.name || 'Unnamed Barber'}</h3>
+                <h3>${barber[`name_${currentLanguage}`] || barber.name_en || 'Unnamed Barber'}</h3>
                 <div class="barber-status">
-                    <span class="status-indicator ${barber.status}">${translations[currentLanguage][barber.status] || barber.status}</span>
+                    <span class="status-indicator ${barber.active ? 'active' : 'inactive'}">
+                        ${translations[currentLanguage][barber.active ? 'active' : 'inactive']}
+                    </span>
+                </div>
+                <div class="barber-working-hours">
+                    ${barber.working_hours ? `${barber.working_hours.start} - ${barber.working_hours.end}` : ''}
                 </div>
             </div>
             <div class="barber-actions">
@@ -306,15 +311,27 @@ function openAddBarberModal() {
     modalTitle.textContent = translations[currentLanguage].addBarber;
     modalForm.innerHTML = `
         <div class="form-group">
-            <label for="barber-name">${translations[currentLanguage].barberName}</label>
-            <input type="text" id="barber-name">
+            <label for="barber-name-ar">${translations[currentLanguage].barberName} (عربي)</label>
+            <input type="text" id="barber-name-ar">
+        </div>
+        <div class="form-group">
+            <label for="barber-name-en">${translations[currentLanguage].barberName} (English)</label>
+            <input type="text" id="barber-name-en">
         </div>
         <div class="form-group">
             <label for="barber-status">${translations[currentLanguage].barberStatus}</label>
             <select id="barber-status">
-                <option value="active">${translations[currentLanguage].active}</option>
-                <option value="inactive">${translations[currentLanguage].inactive}</option>
+                <option value="true">${translations[currentLanguage].active}</option>
+                <option value="false">${translations[currentLanguage].inactive}</option>
             </select>
+        </div>
+        <div class="form-group">
+            <label>Working Hours</label>
+            <div class="working-hours-inputs">
+                <input type="time" id="working-hours-start" value="09:00">
+                <span>to</span>
+                <input type="time" id="working-hours-end" value="21:00">
+            </div>
         </div>
         <button type="button" id="save-barber">${translations[currentLanguage].save}</button>
     `;
@@ -322,8 +339,13 @@ function openAddBarberModal() {
     const saveButton = modalForm.querySelector('#save-barber');
     saveButton.addEventListener('click', () => {
         const newBarber = {
-            name: document.getElementById('barber-name').value,
-            status: document.getElementById('barber-status').value
+            name_ar: document.getElementById('barber-name-ar').value,
+            name_en: document.getElementById('barber-name-en').value,
+            active: document.getElementById('barber-status').value === 'true',
+            working_hours: {
+                start: document.getElementById('working-hours-start').value,
+                end: document.getElementById('working-hours-end').value
+            }
         };
         addBarber(newBarber);
         closeModal();
@@ -340,15 +362,27 @@ function openEditBarberModal(id, barber) {
     modalTitle.textContent = translations[currentLanguage].editBarber;
     modalForm.innerHTML = `
         <div class="form-group">
-            <label for="barber-name">${translations[currentLanguage].barberName}</label>
-            <input type="text" id="barber-name" value="${barber.name || ''}">
+            <label for="barber-name-ar">${translations[currentLanguage].barberName} (عربي)</label>
+            <input type="text" id="barber-name-ar" value="${barber.name_ar || ''}">
+        </div>
+        <div class="form-group">
+            <label for="barber-name-en">${translations[currentLanguage].barberName} (English)</label>
+            <input type="text" id="barber-name-en" value="${barber.name_en || ''}">
         </div>
         <div class="form-group">
             <label for="barber-status">${translations[currentLanguage].barberStatus}</label>
             <select id="barber-status">
-                <option value="active" ${barber.status === 'active' ? 'selected' : ''}>${translations[currentLanguage].active}</option>
-                <option value="inactive" ${barber.status === 'inactive' ? 'selected' : ''}>${translations[currentLanguage].inactive}</option>
+                <option value="true" ${barber.active ? 'selected' : ''}>${translations[currentLanguage].active}</option>
+                <option value="false" ${!barber.active ? 'selected' : ''}>${translations[currentLanguage].inactive}</option>
             </select>
+        </div>
+        <div class="form-group">
+            <label>Working Hours</label>
+            <div class="working-hours-inputs">
+                <input type="time" id="working-hours-start" value="${barber.working_hours?.start || '09:00'}">
+                <span>to</span>
+                <input type="time" id="working-hours-end" value="${barber.working_hours?.end || '21:00'}">
+            </div>
         </div>
         <button type="button" id="save-barber">${translations[currentLanguage].save}</button>
     `;
@@ -356,8 +390,13 @@ function openEditBarberModal(id, barber) {
     const saveButton = modalForm.querySelector('#save-barber');
     saveButton.addEventListener('click', () => {
         const updatedBarber = {
-            name: document.getElementById('barber-name').value,
-            status: document.getElementById('barber-status').value
+            name_ar: document.getElementById('barber-name-ar').value,
+            name_en: document.getElementById('barber-name-en').value,
+            active: document.getElementById('barber-status').value === 'true',
+            working_hours: {
+                start: document.getElementById('working-hours-start').value,
+                end: document.getElementById('working-hours-end').value
+            }
         };
         updateBarber(id, updatedBarber);
         closeModal();
@@ -421,7 +460,17 @@ function deleteCategory(id) {
 // Add barber
 function addBarber(barber) {
     showLoader();
-    database.ref('barbers').push(barber)
+    const newBarber = {
+        name_ar: barber.name_ar || '',
+        name_en: barber.name_en || '',
+        active: true,
+        working_hours: {
+            start: "09:00",
+            end: "21:00"
+        }
+    };
+    
+    database.ref('barbers').push(newBarber)
         .then(() => {
             hideLoader();
             showNotification(translations[currentLanguage].successMessage, 'success');
