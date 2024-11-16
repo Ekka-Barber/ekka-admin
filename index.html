@@ -1,22 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barbershop Sales Dashboard</title>
+    <title>Ekka Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Barbershop Sales Dashboard</h1>
-    <div id="controls">
-        <input type="date" id="startDate">
-        <input type="date" id="endDate">
-        <input type="number" id="chairRent" placeholder="Chair Rent">
-        <input type="number" id="ownerPercentage" placeholder="Owner's Percentage">
-        <button onclick="updateDashboard()">Update</button>
+    <div class="language-switcher">
+        <span class="language-option active" data-lang="ar">العربية</span>
+        <span class="language-option" data-lang="en">English</span>
     </div>
-    <div id="dashboard"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+    <div class="logo-container">
+        <img src="logo.png" alt="Ekkah Barbershop Logo" class="logo">
+    </div>
+
+    <div class="admin-container">
+        <h1 id="main-title">لوحة التحكم</h1>
+
+        <!-- Navigation Tabs -->
+        <div class="admin-tabs">
+            <button class="tab-button active" data-tab="categories">الفئات والخدمات</button>
+            <button class="tab-button" data-tab="barbers">الحلاقين</button>
+            <button class="tab-button" data-tab="settings">الإعدادات</button>
+        </div>
+
+        <!-- Categories & Services Section -->
+        <div class="tab-content active" id="categories-content">
+            <div class="action-bar">
+                <button class="add-button" id="add-category">إضافة فئة جديدة</button>
+            </div>
+            <div class="categories-list" id="categories-list">
+                <!-- Categories will be populated here -->
+            </div>
+        </div>
+
+        <!-- Barbers Section -->
+        <div class="tab-content" id="barbers-content">
+            <div class="action-bar">
+                <button class="add-button" id="add-barber">إضافة حلاق جديد</button>
+            </div>
+            <div class="barbers-list" id="barbers-list">
+                <!-- Barbers will be populated here -->
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="tab-content" id="settings-content">
+            <div class="settings-form">
+                <h2>إعدادات عامة</h2>
+                <!-- Settings will be added here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for adding/editing items -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="modal-title">تعديل</h2>
+            <div id="modal-form">
+                <!-- Form fields will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database.js"></script>
+    
+    <!-- Main Script -->
     <script src="script.js"></script>
 </body>
 </html>
