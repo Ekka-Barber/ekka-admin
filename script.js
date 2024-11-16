@@ -57,7 +57,9 @@ const translations = {
         serviceNameEn: 'اسم الخدمة (إنجليزي)',
         servicePrice: 'سعر الخدمة',
         serviceDuration: 'مدة الخدمة',
-        editService: 'تعديل الخدمة'
+        editService: 'تعديل الخدمة',
+        serviceDescriptionAr: 'وصف الخدمة (عربي)',
+        serviceDescriptionEn: 'وصف الخدمة (إنجليزي)',
     },
     en: {
         adminPanel: 'Admin Panel',
@@ -90,7 +92,9 @@ const translations = {
         serviceNameEn: 'Service Name (English)',
         servicePrice: 'Service Price',
         serviceDuration: 'Service Duration',
-        editService: 'Edit Service'
+        editService: 'Edit Service',
+        serviceDescriptionAr: 'Service Description (Arabic)',
+        serviceDescriptionEn: 'Service Description (English)',
     }
 };
 
@@ -618,6 +622,14 @@ function openEditServiceModal(categoryId, serviceId, service) {
             <input type="text" id="service-name-en" value="${service.name_en || ''}">
         </div>
         <div class="form-group">
+            <label for="service-description-ar">${translations[currentLanguage].serviceDescriptionAr}</label>
+            <textarea id="service-description-ar" rows="3">${service.description_ar || ''}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="service-description-en">${translations[currentLanguage].serviceDescriptionEn}</label>
+            <textarea id="service-description-en" rows="3">${service.description_en || ''}</textarea>
+        </div>
+        <div class="form-group">
             <label for="service-price">${translations[currentLanguage].servicePrice}</label>
             <input type="number" id="service-price" min="0" step="1" value="${service.price || 0}">
         </div>
@@ -633,6 +645,8 @@ function openEditServiceModal(categoryId, serviceId, service) {
         const updatedService = {
             name_ar: document.getElementById('service-name-ar').value,
             name_en: document.getElementById('service-name-en').value,
+            description_ar: document.getElementById('service-description-ar').value,
+            description_en: document.getElementById('service-description-en').value,
             price: parseInt(document.getElementById('service-price').value) || 0,
             duration: document.getElementById('service-duration').value
         };
@@ -688,6 +702,14 @@ function openAddServiceModal(categoryId) {
             <input type="text" id="service-name-en">
         </div>
         <div class="form-group">
+            <label for="service-description-ar">${translations[currentLanguage].serviceDescriptionAr}</label>
+            <textarea id="service-description-ar" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="service-description-en">${translations[currentLanguage].serviceDescriptionEn}</label>
+            <textarea id="service-description-en" rows="3"></textarea>
+        </div>
+        <div class="form-group">
             <label for="service-price">${translations[currentLanguage].servicePrice}</label>
             <input type="number" id="service-price" min="0" step="1">
         </div>
@@ -703,6 +725,8 @@ function openAddServiceModal(categoryId) {
         const newService = {
             name_ar: document.getElementById('service-name-ar').value,
             name_en: document.getElementById('service-name-en').value,
+            description_ar: document.getElementById('service-description-ar').value,
+            description_en: document.getElementById('service-description-en').value,
             price: parseInt(document.getElementById('service-price').value) || 0,
             duration: document.getElementById('service-duration').value
         };
