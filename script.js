@@ -126,68 +126,109 @@ const showSuccess = (message) => {
 const showLoading = () => {
     if (isLoading) return;
     isLoading = true;
-    const loader = document.getElementById('loader');
-    if (loader) loader.style.display = 'block';
+    if (!document.querySelector('.loader-overlay')) {
+        const overlay = document.createElement('div');
+        overlay.className = 'loader-overlay';
+        const loader = document.createElement('div');
+        loader.className = 'loader';
+        overlay.appendChild(loader);
+        document.body.appendChild(overlay);
+    }
 };
 
 const hideLoading = () => {
     isLoading = false;
-    const loader = document.getElementById('loader');
-    if (loader) loader.style.display = 'none';
+    const overlay = document.querySelector('.loader-overlay');
+    if (overlay) {
+        overlay.addEventListener('transitionend', () => overlay.remove());
+        overlay.style.opacity = '0';
+    }
 };
 
 const showModal = (title, content) => {
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-form').innerHTML = content;
-    document.getElementById('edit-modal').style.display = 'block';
+    const modal = document.getElementById('edit-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalForm = document.getElementById('modal-form');
+    
+    if (modal && modalTitle && modalForm) {
+        modalTitle.textContent = title;
+        modalForm.innerHTML = content;
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        
+        // Focus first input after modal is shown
+        setTimeout(() => {
+            const firstInput = modalForm.querySelector('input');
+            if (firstInput) firstInput.focus();
+        }, 100);
+    } else {
+        console.error('Modal elements not found');
+    }
 };
 
 const hideModal = () => {
     const modal = document.getElementById('edit-modal');
-    modal.style.display = 'none';
-    document.getElementById('modal-form').innerHTML = '';
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = ''; // Restore scrolling
+        document.getElementById('modal-form').innerHTML = '';
+    }
 };
 
 const handleDatabaseError = (error, operation = 'database operation') => {
     console.error(`Error during ${operation}:`, error);
     showError(translations['error-occurred'][currentLanguage]);
 };
+
+// Data Validation
+const validateData = (data, type) => {
+    switch(type) {
+        case 'category':
+            return data.ar?.trim() && data.en?.trim();
+        case 'service':
+            return data.name_ar?.trim() && 
+                   data.name_en?.trim() && 
+                   data.duration?.trim() && 
+                   !isNaN(data.price) && 
+                   data.price > 0;
+        case 'barber':
+            return data.name_ar?.trim() && 
+                   data.name_en?.trim() && 
+                   data.working_hours?.start && 
+                   data.working_hours?.end;
+        default:
+            return false;
+    }
+};
 // Categories and Services Management
 const initializeDataListeners = () => {
     showLoading();
     
-    // Fetch categories data
-    db.ref('categories').once('value')
-        .then(snapshot => {
-            if (snapshot.exists()) {
-                updateCategoriesUI(snapshot.val());
-            } else {
-                console.log("No categories data available");
-                updateCategoriesUI(null);
-            }
-        })
-        .catch(error => {
+    // Promise-based data fetching for better error handling
+    Promise.all([
+        db.ref('categories').once('value').catch(error => {
             console.error("Error fetching categories:", error);
-            handleDatabaseError(error, 'fetching categories');
-        });
-
-    // Fetch barbers data
-    db.ref('barbers').once('value')
-        .then(snapshot => {
-            if (snapshot.exists()) {
-                updateBarbersUI(snapshot.val());
-            } else {
-                console.log("No barbers data available");
-                updateBarbersUI(null);
-            }
-        })
-        .catch(error => {
+            return { val: () => null };
+        }),
+        db.ref('barbers').once('value').catch(error => {
             console.error("Error fetching barbers:", error);
-            handleDatabaseError(error, 'fetching barbers');
+            return { val: () => null };
         })
-        .finally(() => {
-            hideLoading();
-        });
+    ]).then(([categoriesSnapshot, barbersSnapshot]) => {
+        if (categoriesSnapshot.val()) {
+            updateCategoriesUI(categoriesSnapshot.val());
+        } else {
+            updateCategoriesUI(null);
+        }
+        
+        if (barbersSnapshot.val()) {
+            updateBarbersUI(barbersSnapshot.val());
+        } else {
+            updateBarbersUI(null);
+        }
+    }).finally(() => {
+        hideLoading();
+    });
 
     // Set up real-time listeners
     setupRealtimeListeners();
@@ -195,17 +236,17 @@ const initializeDataListeners = () => {
 
 // Setup Realtime Listeners
 const setupRealtimeListeners = () => {
-    db.ref('categories').on('value', (snapshot) => {
-        updateCategoriesUI(snapshot.val());
-    }, (error) => {
-        handleDatabaseError(error, 'realtime categories update');
-    });
+    // Categories listener
+    db.ref('categories').on('value', 
+        snapshot => updateCategoriesUI(snapshot.val()),
+        error => handleDatabaseError(error, 'realtime categories update')
+    );
 
-    db.ref('barbers').on('value', (snapshot) => {
-        updateBarbersUI(snapshot.val());
-    }, (error) => {
-        handleDatabaseError(error, 'realtime barbers update');
-    });
+    // Barbers listener
+    db.ref('barbers').on('value',
+        snapshot => updateBarbersUI(snapshot.val()),
+        error => handleDatabaseError(error, 'realtime barbers update')
+    );
 };
 
 // Update Categories UI
@@ -261,31 +302,62 @@ const renderServices = (categoryId, services) => {
         return `<p class="no-data">${translations['no-services'][currentLanguage]}</p>`;
     }
 
-    return Object.entries(services).map(([serviceId, service]) => `
-        <div class="service-item" id="service-${serviceId}">
-            <div class="service-details">
-                <h4>${service[`name_${currentLanguage}`]}</h4>
-                <p class="service-info">${service.duration} | ${service.price} SAR</p>
-                <p class="service-description">${service[`description_${currentLanguage}`] || ''}</p>
+    return Object.entries(services)
+        .sort((a, b) => a[1].price - b[1].price) // Sort by price
+        .map(([serviceId, service]) => `
+            <div class="service-item" id="service-${serviceId}">
+                <div class="service-details">
+                    <h4>${service[`name_${currentLanguage}`]}</h4>
+                    <p class="service-info">
+                        <span class="duration">${service.duration}</span> | 
+                        <span class="price">${service.price} SAR</span>
+                    </p>
+                    ${service[`description_${currentLanguage}`] ? 
+                        `<p class="service-description">${service[`description_${currentLanguage}`]}</p>` : 
+                        ''}
+                </div>
+                <div class="service-actions">
+                    <button onclick="editService('${categoryId}', '${serviceId}')" class="edit-button">
+                        ${translations['edit'][currentLanguage]}
+                    </button>
+                    <button onclick="deleteService('${categoryId}', '${serviceId}')" class="delete-button">
+                        ${translations['delete'][currentLanguage]}
+                    </button>
+                </div>
             </div>
-            <div class="service-actions">
-                <button onclick="editService('${categoryId}', '${serviceId}')" class="edit-button">
-                    ${translations['edit'][currentLanguage]}
-                </button>
-                <button onclick="deleteService('${categoryId}', '${serviceId}')" class="delete-button">
-                    ${translations['delete'][currentLanguage]}
-                </button>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
 };
 
 // Add Category
-window.submitNewCategory = async () => {
+window.addCategory = () => {
+    const formHTML = `
+        <form id="category-form" onsubmit="submitNewCategory(event)">
+            <div class="form-group">
+                <label>${translations['category-name'][currentLanguage]} (عربي):</label>
+                <input type="text" id="category-name-ar" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['category-name'][currentLanguage]} (English):</label>
+                <input type="text" id="category-name-en" required>
+            </div>
+            <button type="submit" class="submit-button">
+                ${translations['add'][currentLanguage]}
+            </button>
+        </form>
+    `;
+    showModal(translations['new-category'][currentLanguage], formHTML);
+};
+
+// Submit New Category
+window.submitNewCategory = async (event) => {
+    if (event) event.preventDefault();
+    
     const nameAr = document.getElementById('category-name-ar').value.trim();
     const nameEn = document.getElementById('category-name-en').value.trim();
 
-    if (!nameAr || !nameEn) {
+    const categoryData = { ar: nameAr, en: nameEn, services: {} };
+
+    if (!validateData(categoryData, 'category')) {
         showError(translations['fill-required'][currentLanguage]);
         return;
     }
@@ -293,11 +365,7 @@ window.submitNewCategory = async () => {
     try {
         showLoading();
         const newCategoryRef = db.ref('categories').push();
-        await newCategoryRef.set({ 
-            ar: nameAr, 
-            en: nameEn, 
-            services: {} 
-        });
+        await newCategoryRef.set(categoryData);
         hideModal();
         showSuccess(translations['success-add'][currentLanguage]);
     } catch (error) {
@@ -310,39 +378,44 @@ window.submitNewCategory = async () => {
 // Add Service
 window.addService = (categoryId) => {
     const formHTML = `
-        <div class="form-group">
-            <label>${translations['service-name'][currentLanguage]} (عربي):</label>
-            <input type="text" id="service-name-ar" required>
-        </div>
-        <div class="form-group">
-            <label>${translations['service-name'][currentLanguage]} (English):</label>
-            <input type="text" id="service-name-en" required>
-        </div>
-        <div class="form-group">
-            <label>${translations['duration'][currentLanguage]}:</label>
-            <input type="text" id="service-duration" placeholder="e.g., 30m or 1h 30m" required>
-        </div>
-        <div class="form-group">
-            <label>${translations['price'][currentLanguage]}:</label>
-            <input type="number" id="service-price" required>
-        </div>
-        <div class="form-group">
-            <label>${translations['description'][currentLanguage]} (عربي):</label>
-            <textarea id="service-description-ar"></textarea>
-        </div>
-        <div class="form-group">
-            <label>${translations['description'][currentLanguage]} (English):</label>
-            <textarea id="service-description-en"></textarea>
-        </div>
-        <button class="submit-button" onclick="submitNewService('${categoryId}')">
-            ${translations['add'][currentLanguage]}
-        </button>
+        <form id="service-form" onsubmit="submitNewService(event, '${categoryId}')">
+            <div class="form-group">
+                <label>${translations['service-name'][currentLanguage]} (عربي):</label>
+                <input type="text" id="service-name-ar" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['service-name'][currentLanguage]} (English):</label>
+                <input type="text" id="service-name-en" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['duration'][currentLanguage]}:</label>
+                <input type="text" id="service-duration" 
+                       placeholder="e.g., 30m or 1h 30m" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['price'][currentLanguage]}:</label>
+                <input type="number" id="service-price" min="0" step="1" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['description'][currentLanguage]} (عربي):</label>
+                <textarea id="service-description-ar"></textarea>
+            </div>
+            <div class="form-group">
+                <label>${translations['description'][currentLanguage]} (English):</label>
+                <textarea id="service-description-en"></textarea>
+            </div>
+            <button type="submit" class="submit-button">
+                ${translations['add'][currentLanguage]}
+            </button>
+        </form>
     `;
     showModal(translations['new-service'][currentLanguage], formHTML);
 };
 
 // Submit New Service
-window.submitNewService = async (categoryId) => {
+window.submitNewService = async (event, categoryId) => {
+    if (event) event.preventDefault();
+    
     const serviceData = {
         name_ar: document.getElementById('service-name-ar').value.trim(),
         name_en: document.getElementById('service-name-en').value.trim(),
@@ -352,7 +425,7 @@ window.submitNewService = async (categoryId) => {
         description_en: document.getElementById('service-description-en').value.trim()
     };
 
-    if (!serviceData.name_ar || !serviceData.name_en || !serviceData.duration || !serviceData.price) {
+    if (!validateData(serviceData, 'service')) {
         showError(translations['required-fields'][currentLanguage]);
         return;
     }
@@ -384,43 +457,45 @@ const updateBarbersUI = (barbers) => {
 
     try {
         container.innerHTML = '';
-        Object.entries(barbers).forEach(([barberId, barber]) => {
-            if (!barber) return;
+        Object.entries(barbers)
+            .sort((a, b) => a[1][`name_${currentLanguage}`].localeCompare(b[1][`name_${currentLanguage}`]))
+            .forEach(([barberId, barber]) => {
+                if (!barber) return;
 
-            const barberElement = document.createElement('div');
-            barberElement.className = `barber-item ${barber.active ? 'active' : 'inactive'}`;
-            barberElement.innerHTML = `
-                <div class="barber-header">
-                    <h3>${barber[`name_${currentLanguage}`]}</h3>
-                    <div class="barber-status">
-                        <span class="status-indicator ${barber.active ? 'active' : 'inactive'}">
-                            ${barber.active ? 
-                                translations['active'][currentLanguage] : 
-                                translations['inactive'][currentLanguage]}
-                        </span>
+                const barberElement = document.createElement('div');
+                barberElement.className = `barber-item ${barber.active ? 'active' : 'inactive'}`;
+                barberElement.innerHTML = `
+                    <div class="barber-header">
+                        <h3>${barber[`name_${currentLanguage}`]}</h3>
+                        <div class="barber-status">
+                            <span class="status-indicator ${barber.active ? 'active' : 'inactive'}">
+                                ${barber.active ? 
+                                    translations['active'][currentLanguage] : 
+                                    translations['inactive'][currentLanguage]}
+                            </span>
+                        </div>
                     </div>
-                </div>
-                <div class="barber-details">
-                    <p>${translations['working-hours'][currentLanguage]}: 
-                       ${barber.working_hours.start} - ${barber.working_hours.end}</p>
-                </div>
-                <div class="barber-actions">
-                    <button onclick="editBarber('${barberId}')" class="edit-button">
-                        ${translations['edit'][currentLanguage]}
-                    </button>
-                    <button onclick="toggleBarberStatus('${barberId}', ${!barber.active})" 
-                            class="toggle-button">
-                        ${barber.active ? 
-                            (currentLanguage === 'ar' ? 'إيقاف' : 'Deactivate') : 
-                            (currentLanguage === 'ar' ? 'تفعيل' : 'Activate')}
-                    </button>
-                    <button onclick="deleteBarber('${barberId}')" class="delete-button">
-                        ${translations['delete'][currentLanguage]}
-                    </button>
-                </div>
-            `;
-            container.appendChild(barberElement);
-        });
+                    <div class="barber-details">
+                        <p>${translations['working-hours'][currentLanguage]}: 
+                           ${barber.working_hours.start} - ${barber.working_hours.end}</p>
+                    </div>
+                    <div class="barber-actions">
+                        <button onclick="editBarber('${barberId}')" class="edit-button">
+                            ${translations['edit'][currentLanguage]}
+                        </button>
+                        <button onclick="toggleBarberStatus('${barberId}', ${!barber.active})" 
+                                class="toggle-button ${barber.active ? 'active' : 'inactive'}">
+                            ${barber.active ? 
+                                (currentLanguage === 'ar' ? 'إيقاف' : 'Deactivate') : 
+                                (currentLanguage === 'ar' ? 'تفعيل' : 'Activate')}
+                        </button>
+                        <button onclick="deleteBarber('${barberId}')" class="delete-button">
+                            ${translations['delete'][currentLanguage]}
+                        </button>
+                    </div>
+                `;
+                container.appendChild(barberElement);
+            });
     } catch (error) {
         console.error("Error updating barbers UI:", error);
         container.innerHTML = `<p class="error-message">${translations['error-occurred'][currentLanguage]}</p>`;
@@ -428,7 +503,43 @@ const updateBarbersUI = (barbers) => {
 };
 
 // Add New Barber
-window.submitNewBarber = async () => {
+window.addBarber = () => {
+    const formHTML = `
+        <form id="barber-form" onsubmit="submitNewBarber(event)">
+            <div class="form-group">
+                <label>${translations['barber-name'][currentLanguage]} (عربي):</label>
+                <input type="text" id="barber-name-ar" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['barber-name'][currentLanguage]} (English):</label>
+                <input type="text" id="barber-name-en" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['start-time'][currentLanguage]}:</label>
+                <input type="time" id="working-hours-start" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['end-time'][currentLanguage]}:</label>
+                <input type="time" id="working-hours-end" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="barber-active" checked>
+                    ${translations['active'][currentLanguage]}
+                </label>
+            </div>
+            <button type="submit" class="submit-button">
+                ${translations['add'][currentLanguage]}
+            </button>
+        </form>
+    `;
+    showModal(translations['new-barber'][currentLanguage], formHTML);
+};
+
+// Submit New Barber
+window.submitNewBarber = async (event) => {
+    if (event) event.preventDefault();
+    
     const barberData = {
         name_ar: document.getElementById('barber-name-ar').value.trim(),
         name_en: document.getElementById('barber-name-en').value.trim(),
@@ -439,8 +550,7 @@ window.submitNewBarber = async () => {
         active: document.getElementById('barber-active').checked
     };
 
-    if (!barberData.name_ar || !barberData.name_en || 
-        !barberData.working_hours.start || !barberData.working_hours.end) {
+    if (!validateData(barberData, 'barber')) {
         showError(translations['fill-required'][currentLanguage]);
         return;
     }
@@ -471,34 +581,36 @@ window.editBarber = async (barberId) => {
         }
 
         const formHTML = `
-            <div class="form-group">
-                <label>${translations['barber-name'][currentLanguage]} (عربي):</label>
-                <input type="text" id="edit-barber-name-ar" value="${barber.name_ar}" required>
-            </div>
-            <div class="form-group">
-                <label>${translations['barber-name'][currentLanguage]} (English):</label>
-                <input type="text" id="edit-barber-name-en" value="${barber.name_en}" required>
-            </div>
-            <div class="form-group">
-                <label>${translations['start-time'][currentLanguage]}:</label>
-                <input type="time" id="edit-working-hours-start" 
-                       value="${barber.working_hours.start}" required>
-            </div>
-            <div class="form-group">
-                <label>${translations['end-time'][currentLanguage]}:</label>
-                <input type="time" id="edit-working-hours-end" 
-                       value="${barber.working_hours.end}" required>
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="edit-barber-active" 
-                           ${barber.active ? 'checked' : ''}>
-                    ${translations['active'][currentLanguage]}
-                </label>
-            </div>
-            <button class="submit-button" onclick="submitBarberEdit('${barberId}')">
-                ${translations['save'][currentLanguage]}
-            </button>
+            <form id="edit-barber-form" onsubmit="submitBarberEdit(event, '${barberId}')">
+                <div class="form-group">
+                    <label>${translations['barber-name'][currentLanguage]} (عربي):</label>
+                    <input type="text" id="edit-barber-name-ar" value="${barber.name_ar}" required>
+                </div>
+                <div class="form-group">
+                    <label>${translations['barber-name'][currentLanguage]} (English):</label>
+                    <input type="text" id="edit-barber-name-en" value="${barber.name_en}" required>
+                </div>
+                <div class="form-group">
+                    <label>${translations['start-time'][currentLanguage]}:</label>
+                    <input type="time" id="edit-working-hours-start" 
+                           value="${barber.working_hours.start}" required>
+                </div>
+                <div class="form-group">
+                    <label>${translations['end-time'][currentLanguage]}:</label>
+                    <input type="time" id="edit-working-hours-end" 
+                           value="${barber.working_hours.end}" required>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="edit-barber-active" 
+                               ${barber.active ? 'checked' : ''}>
+                        ${translations['active'][currentLanguage]}
+                    </label>
+                </div>
+                <button type="submit" class="submit-button">
+                    ${translations['save'][currentLanguage]}
+                </button>
+            </form>
         `;
         showModal(translations['edit'][currentLanguage], formHTML);
     } catch (error) {
@@ -509,7 +621,9 @@ window.editBarber = async (barberId) => {
 };
 
 // Submit Barber Edit
-window.submitBarberEdit = async (barberId) => {
+window.submitBarberEdit = async (event, barberId) => {
+    if (event) event.preventDefault();
+    
     const updatedData = {
         name_ar: document.getElementById('edit-barber-name-ar').value.trim(),
         name_en: document.getElementById('edit-barber-name-en').value.trim(),
@@ -520,8 +634,7 @@ window.submitBarberEdit = async (barberId) => {
         active: document.getElementById('edit-barber-active').checked
     };
 
-    if (!updatedData.name_ar || !updatedData.name_en || 
-        !updatedData.working_hours.start || !updatedData.working_hours.end) {
+    if (!validateData(updatedData, 'barber')) {
         showError(translations['fill-required'][currentLanguage]);
         return;
     }
@@ -538,40 +651,6 @@ window.submitBarberEdit = async (barberId) => {
     }
 };
 
-// Toggle Barber Status
-window.toggleBarberStatus = async (barberId, newStatus) => {
-    try {
-        showLoading();
-        await db.ref(`barbers/${barberId}`).update({ active: newStatus });
-        showSuccess(
-            currentLanguage === 'ar' 
-                ? `تم ${newStatus ? 'تفعيل' : 'إيقاف'} الحلاق بنجاح` 
-                : `Barber ${newStatus ? 'activated' : 'deactivated'} successfully`
-        );
-    } catch (error) {
-        handleDatabaseError(error, 'toggling barber status');
-    } finally {
-        hideLoading();
-    }
-};
-
-// Delete Barber
-window.deleteBarber = async (barberId) => {
-    if (!confirm(translations['confirm-delete'][currentLanguage])) {
-        return;
-    }
-
-    try {
-        showLoading();
-        await db.ref(`barbers/${barberId}`).remove();
-        showSuccess(translations['success-delete'][currentLanguage]);
-    } catch (error) {
-        handleDatabaseError(error, 'deleting barber');
-    } finally {
-        hideLoading();
-    }
-};
-
 // Event Listeners and Initialization
 document.addEventListener('DOMContentLoaded', () => {
     // Debug database connection
@@ -581,13 +660,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab Navigation
     document.querySelectorAll('.tab-button').forEach(button => {
         button.addEventListener('click', (e) => {
-            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            const buttons = document.querySelectorAll('.tab-button');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            buttons.forEach(b => b.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
 
             const tabName = e.target.dataset.tab;
             e.target.classList.add('active');
-            document.getElementById(`${tabName}-content`).classList.add('active');
-            activeTab = tabName;
+            const content = document.getElementById(`${tabName}-content`);
+            if (content) {
+                content.classList.add('active');
+                activeTab = tabName;
+            }
         });
     });
 
@@ -595,7 +680,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.language-option').forEach(option => {
         option.addEventListener('click', (e) => {
             const lang = e.target.dataset.lang;
-            document.querySelectorAll('.language-option').forEach(opt => opt.classList.remove('active'));
+            document.querySelectorAll('.language-option').forEach(opt => 
+                opt.classList.remove('active')
+            );
             e.target.classList.add('active');
             currentLanguage = lang;
             document.documentElement.lang = lang;
@@ -603,6 +690,10 @@ document.addEventListener('DOMContentLoaded', () => {
             updateLanguage();
         });
     });
+
+    // Initialize Add Buttons
+    document.getElementById('add-category')?.addEventListener('click', addCategory);
+    document.getElementById('add-barber')?.addEventListener('click', addBarber);
 
     // Modal Close Button
     const closeButton = document.querySelector('.close-button');
@@ -619,27 +710,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize data listeners
     initializeDataListeners();
 });
-
-// Update language throughout the UI
-const updateLanguage = () => {
-    document.getElementById('main-title').textContent = translations['admin-panel'][currentLanguage];
-    
-    // Update all translatable elements
-    document.querySelectorAll('[data-translate]').forEach(element => {
-        const key = element.dataset.translate;
-        if (translations[key]) {
-            element.textContent = translations[key][currentLanguage];
-        }
-    });
-
-    // Refresh current view
-    if (activeTab === 'categories') {
-        db.ref('categories').once('value').then(snapshot => {
-            updateCategoriesUI(snapshot.val());
-        });
-    } else if (activeTab === 'barbers') {
-        db.ref('barbers').once('value').then(snapshot => {
-            updateBarbersUI(snapshot.val());
-        });
-    }
-};
