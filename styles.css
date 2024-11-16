@@ -1,97 +1,52 @@
-/* Variables */
-:root {
-    --primary-color: #d4af37;
-    --secondary-color: #3c3c3c;
-    --background-color: #ffffff;
-    --text-color: #3c3c3c;
-    --border-color: #d4af37;
-    --hover-color: #b8960c;
-    --error-color: #ff4444;
-    --success-color: #00C851;
-    --inactive-color: #888888;
-    --modal-background: rgba(0, 0, 0, 0.5);
-    --transition-speed: 0.3s;
-}
-
-/* General styles */
+/* General Styles */
 body {
-    font-family: 'Tajawal', Arial, sans-serif;
-    background-color: var(--background-color);
-    color: var(--text-color);
+    font-family: 'Tajawal', sans-serif;
     margin: 0;
-    padding: 20px;
-    transition: background-color var(--transition-speed);
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
 }
 
-/* RTL and LTR support */
-body[dir="rtl"] {
-    direction: rtl;
-    text-align: right;
-}
-
-body[dir="ltr"] {
-    direction: ltr;
-    text-align: left;
-}
-
-/* Logo Styles */
-.logo-container {
-    width: 100%;
-    max-width: 600px;
+.admin-container {
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 20px 0;
-    text-align: center;
-    overflow: hidden;
+    padding: 20px;
 }
 
-.logo {
-    width: 100%;
-    max-width: 600px;
-    height: auto;
-    display: block;
-    object-fit: contain;
+h1, h2, h3 {
+    margin-bottom: 20px;
 }
 
-/* Language switcher */
+/* Language Switcher */
 .language-switcher {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
+    position: absolute;
+    top: 10px;
+    right: 10px;
     display: flex;
-    align-items: center;
-    background-color: #e0e0e0;
-    border-radius: 20px;
-    padding: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-body[dir="ltr"] .language-switcher {
-    right: auto;
-    left: 20px;
+    gap: 10px;
 }
 
 .language-option {
-    padding: 5px 15px;
     cursor: pointer;
-    border-radius: 15px;
-    transition: background-color 0.3s, color 0.3s;
-    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background-color: #f0f0f0;
 }
 
 .language-option.active {
-    background-color: var(--primary-color);
+    background-color: #007bff;
     color: white;
 }
 
-/* Admin Container */
-.admin-container {
-    max-width: 1200px;
-    margin: 50px auto;
-    padding: 20px;
-    background-color: #f8f8f8;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+/* Logo */
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo {
+    max-width: 150px;
+    height: auto;
 }
 
 /* Tabs */
@@ -99,236 +54,123 @@ body[dir="ltr"] .language-switcher {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
-    border-bottom: 2px solid var(--border-color);
-    padding-bottom: 10px;
 }
 
 .tab-button {
     padding: 10px 20px;
     border: none;
-    background: none;
+    background-color: #f0f0f0;
     cursor: pointer;
-    font-size: 16px;
-    color: var(--text-color);
-    transition: color 0.3s;
-    position: relative;
+    border-radius: 4px;
 }
 
 .tab-button.active {
-    color: var(--primary-color);
-    font-weight: bold;
+    background-color: #007bff;
+    color: white;
 }
 
-.tab-button.active::after {
-    content: '';
-    position: absolute;
-    bottom: -12px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: var(--primary-color);
-}
-
-/* Content Sections */
 .tab-content {
     display: none;
-    padding: 20px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .tab-content.active {
     display: block;
-    animation: fadeIn 0.3s ease-in-out;
 }
 
 /* Action Bar */
 .action-bar {
-    position: relative;
-    z-index: 3;
     margin-bottom: 20px;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
 }
 
-/* Categories and Services */
+.add-button {
+    padding: 10px 20px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+/* Lists */
+.categories-list, .barbers-list {
+    display: grid;
+    gap: 20px;
+}
+
 .category-item, .barber-item {
-    background: white;
+    background-color: white;
+    padding: 20px;
     border-radius: 8px;
-    margin-bottom: 20px;
-    padding: 15px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease-in-out;
-}
-
-.category-item:hover, .barber-item:hover {
-    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .category-header, .barber-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 10px;
 }
 
 .category-actions, .barber-actions {
     display: flex;
     gap: 10px;
-    position: relative;
-    z-index: 2;
-    pointer-events: auto;
-}
-
-.services-list {
-    margin-left: 20px;
-}
-
-.service-item {
-    background: #f9f9f9;
-    border-radius: 6px;
-    margin: 10px 0;
-    padding: 15px;
-    transition: background-color 0.3s;
-}
-
-.service-item:hover {
-    background: #f0f0f0;
-}
-
-.service-details h4 {
-    margin: 0 0 10px 0;
-    color: var(--primary-color);
-}
-
-.service-actions {
-    margin-top: 10px;
-    display: flex;
-    gap: 10px;
-    position: relative;
-    z-index: 2;
-    pointer-events: auto;
-}
-
-/* Barbers */
-.barber-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.status-indicator {
-    padding: 5px 10px;
-    border-radius: 15px;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.status-indicator.active {
-    background-color: var(--success-color);
-    color: white;
-}
-
-.status-indicator.inactive {
-    background-color: var(--inactive-color);
-    color: white;
 }
 
 /* Buttons */
-button {
-    padding: 8px 15px;
+.edit-button, .delete-button {
+    padding: 5px 10px;
     border: none;
-    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.3s;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.add-button {
-    background-color: var(--primary-color);
-    color: white;
+    border-radius: 4px;
 }
 
 .edit-button {
-    background-color: var(--secondary-color);
-    color: white;
+    background-color: #ffc107;
+    color: #212529;
 }
 
 .delete-button {
-    background-color: var(--error-color);
+    background-color: #dc3545;
     color: white;
-}
-
-.toggle-button {
-    background-color: var(--inactive-color);
-    color: white;
-}
-
-button:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
-
-button:active {
-    transform: translateY(0);
 }
 
 /* Modal */
 .modal {
     display: none;
     position: fixed;
-    top: 0;
+    z-index: 1;
     left: 0;
+    top: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--modal-background);
-    z-index: 1000;
-    overflow-y: auto;
-    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal-content {
     background-color: white;
-    margin: 20px auto;
+    margin: 10% auto;
     padding: 20px;
     border-radius: 8px;
-    width: 95%;
+    width: 80%;
     max-width: 500px;
-    position: relative;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.modal-content button {
-    pointer-events: auto;
 }
 
 .close-button {
-    position: absolute;
-    right: 20px;
-    top: 20px;
-    font-size: 24px;
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
     cursor: pointer;
-    color: #666;
-    background: none;
-    border: none;
-    padding: 5px;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
 }
 
-.close-button:hover {
-    background-color: #f0f0f0;
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
 }
 
-/* Form styles */
+/* Form Styles */
 .form-group {
     margin-bottom: 15px;
 }
@@ -336,65 +178,36 @@ button:active {
 .form-group label {
     display: block;
     margin-bottom: 5px;
-    font-weight: 500;
 }
 
-.form-group input[type="text"],
-.form-group input[type="number"],
-.form-group textarea {
+.form-group input,
+.form-group select {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 14px;
-}
-
-.form-group textarea {
-    height: 100px;
-    resize: vertical;
-}
-
-/* Notification messages */
-.error-message,
-.success-message {
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 15px;
-    font-weight: 500;
-}
-
-.error-message {
-    background-color: #ffebee;
-    color: var(--error-color);
-    border: 1px solid var(--error-color);
-}
-
-.success-message {
-    background-color: #e8f5e9;
-    color: var(--success-color);
-    border: 1px solid var(--success-color);
 }
 
 /* Loader */
-.loader-overlay {
+.loader {
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     background-color: rgba(255, 255, 255, 0.7);
-    display: flex;
+    z-index: 9999;
     justify-content: center;
     align-items: center;
-    z-index: 9999;
 }
 
-.loader {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid var(--primary-color);
+.loader-spinner {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     animation: spin 1s linear infinite;
 }
 
@@ -403,150 +216,12 @@ button:active {
     100% { transform: rotate(360deg); }
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .admin-container {
-        margin: 20px auto;
-        padding: 10px;
-    }
-
-    .category-header,
-    .barber-header {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .category-actions,
-    .barber-actions {
-        width: 100%;
-        justify-content: space-between;
-        flex-wrap: wrap;
-    }
-
-    .modal {
-        padding: 10px;
-    }
-
-    .modal-content {
-        margin: 10px auto;
-        padding: 15px;
-        width: 100%;
-    }
-
-    .close-button {
-        top: 10px;
-        right: 10px;
-    }
-
-    body[dir="rtl"] .close-button {
-        right: auto;
-        left: 10px;
-    }
-
-    .admin-tabs {
-        flex-wrap: wrap;
-    }
-
-    .tab-button {
-        flex: 1 1 auto;
-        text-align: center;
-        padding: 8px 12px;
-    }
-
-    .language-switcher {
-        top: 10px;
-        right: 10px;
-    }
-
-    button {
-        padding: 6px 12px;
-        font-size: 13px;
-    }
-}
-
-/* Print Styles */
-@media print {
-    .admin-container {
-        margin: 0;
-        padding: 0;
-        box-shadow: none;
-    }
-
-    .language-switcher,
-    .admin-tabs,
-    button,
-    .modal {
-        display: none !important;
-    }
-}
-
-/* Barber item styles */
-.barber-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-.barber-info {
-    flex-grow: 1;
-}
-
-.barber-name {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.barber-status {
-    font-size: 0.9em;
-    color: #666;
-}
-
-.barber-working-hours {
-    font-size: 0.9em;
-    color: #666;
-}
-
-/* Status indicator styles */
-.status-indicator {
-    padding: 2px 5px;
-    border-radius: 3px;
-    font-size: 0.8em;
-}
-
-.status-indicator.active {
-    background-color: #4CAF50;
-    color: white;
-}
-
-.status-indicator.inactive {
-    background-color: #F44336;
-    color: white;
-}
-
-/* Working hours input styles */
-.working-hours-inputs {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.working-hours-inputs input[type="time"] {
-    width: 100px;
-}
-
-/* Notification styles */
+/* Notification */
 #notification-container {
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 1000;
+    z-index: 9999;
 }
 
 .notification {
@@ -554,25 +229,94 @@ button:active {
     margin-bottom: 10px;
     border-radius: 4px;
     color: white;
-    font-weight: bold;
     opacity: 0;
-    transition: opacity 0.3s ease-in-out;
-}
-
-.notification.success {
-    background-color: var(--success-color);
-}
-
-.notification.error {
-    background-color: var(--error-color);
+    transition: opacity 0.3s ease;
 }
 
 .notification.show {
     opacity: 1;
 }
 
-/* Adjust for RTL */
-body[dir="rtl"] #notification-container {
-    left: 20px;
+.notification.success {
+    background-color: #28a745;
+}
+
+.notification.error {
+    background-color: #dc3545;
+}
+
+/* RTL Support */
+body[dir="rtl"] .language-switcher {
+    left: 10px;
     right: auto;
+}
+
+body[dir="rtl"] .close-button {
+    float: left;
+}
+
+/* Barber Status */
+.status-indicator {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.status-indicator.active {
+    background-color: #28a745;
+    color: white;
+}
+
+.status-indicator.inactive {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Working Hours */
+.working-hours-inputs {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.working-hours-inputs input[type="time"] {
+    width: 120px;
+}
+
+/* Services styles */
+.services-list {
+    margin-top: 10px;
+    padding-left: 20px;
+}
+
+.service-item {
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.service-details h4 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+}
+
+.service-details p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.service-actions {
+    display: flex;
+    gap: 5px;
+}
+
+/* Adjust for RTL */
+body[dir="rtl"] .services-list {
+    padding-right: 20px;
+    padding-left: 0;
 }
