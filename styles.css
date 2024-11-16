@@ -188,6 +188,15 @@ h1, h2, h3 {
     border-radius: 4px;
 }
 
+textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    font-family: inherit;
+}
+
 /* Loader */
 .loader {
     display: none;
