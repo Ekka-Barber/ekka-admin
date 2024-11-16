@@ -148,11 +148,14 @@ h1, h2, h3 {
 
 .modal-content {
     background-color: white;
-    margin: 10% auto;
+    margin: 5vh auto; /* Changed from 10% to 5vh */
     padding: 20px;
     border-radius: 8px;
     width: 80%;
     max-width: 500px;
+    max-height: 90vh; /* Added max-height */
+    overflow-y: auto; /* Added scroll */
+    position: relative; /* Added position */
 }
 
 .close-button {
@@ -328,4 +331,9 @@ body[dir="rtl"] .close-button {
 body[dir="rtl"] .services-list {
     padding-right: 20px;
     padding-left: 0;
+}
+
+/* Ensure the modal form doesn't overflow */
+#modal-form {
+    margin-bottom: 20px; /* Added margin to prevent content from touching bottom */
 }
