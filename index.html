@@ -3,75 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekka Admin Panel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <title>Ekka Barbershop Admin</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
+    <!-- Language Switcher -->
     <div class="language-switcher">
         <span class="language-option active" data-lang="ar">العربية</span>
         <span class="language-option" data-lang="en">English</span>
     </div>
 
+    <!-- Logo -->
     <div class="logo-container">
-        <img src="logo.png" alt="Ekkah Barbershop Logo" class="logo">
+        <img src="logo.png" alt="Ekka Barbershop Logo" class="logo">
     </div>
 
+    <!-- Main Admin Container -->
     <div class="admin-container">
         <h1 id="main-title">لوحة التحكم</h1>
 
-        <!-- Navigation Tabs -->
+        <!-- Admin Tabs -->
         <div class="admin-tabs">
             <button class="tab-button active" data-tab="categories">الفئات والخدمات</button>
             <button class="tab-button" data-tab="barbers">الحلاقين</button>
             <button class="tab-button" data-tab="settings">الإعدادات</button>
         </div>
 
-        <!-- Categories & Services Section -->
-        <div class="tab-content active" id="categories-content">
+        <!-- Categories Content -->
+        <div id="categories-content" class="tab-content active">
             <div class="action-bar">
-                <button class="add-button" id="add-category">إضافة فئة جديدة</button>
+                <button id="add-category" class="add-button">إضافة فئة جديدة</button>
             </div>
-            <div class="categories-list" id="categories-list">
-                <!-- Categories will be populated here -->
+            <div id="categories-list" class="categories-list">
+                <!-- Categories will be loaded here dynamically -->
             </div>
         </div>
 
-        <!-- Barbers Section -->
-        <div class="tab-content" id="barbers-content">
+        <!-- Barbers Content -->
+        <div id="barbers-content" class="tab-content">
             <div class="action-bar">
-                <button class="add-button" id="add-barber">إضافة حلاق جديد</button>
+                <button id="add-barber" class="add-button">إضافة حلاق جديد</button>
             </div>
-            <div class="barbers-list" id="barbers-list">
-                <!-- Barbers will be populated here -->
+            <div id="barbers-list" class="barbers-list">
+                <!-- Barbers will be loaded here dynamically -->
             </div>
         </div>
 
-        <!-- Settings Section -->
-        <div class="tab-content" id="settings-content">
+        <!-- Settings Content -->
+        <div id="settings-content" class="tab-content">
             <div class="settings-form">
                 <h2>إعدادات عامة</h2>
-                <!-- Settings will be added here -->
+                <!-- Settings form will be added here -->
             </div>
         </div>
     </div>
 
-    <!-- Modal for adding/editing items -->
-    <div class="modal" id="edit-modal">
+    <!-- Modal -->
+    <div id="edit-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h2 id="modal-title">تعديل</h2>
             <div id="modal-form">
-                <!-- Form fields will be dynamically added here -->
+                <!-- Modal content will be loaded here dynamically -->
             </div>
         </div>
     </div>
 
-    <!-- Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database.js"></script>
-    
-    <!-- Main Script -->
+    <!-- Loading Indicator -->
+    <div id="loader" class="loader" style="display: none;">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- Scripts -->
     <script src="script.js"></script>
+
+    <!-- Development Tools -->
+    <script>
+        // Enable Firebase debugging in development
+        if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+            console.log('Development mode enabled');
+        }
+    </script>
 </body>
 </html>
