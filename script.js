@@ -161,255 +161,129 @@ const hideModal = () => {
     }
 };
 
-// Submit Category
-window.submitNewCategory = async () => {
-    const nameAr = document.getElementById('category-name-ar').value.trim();
-    const nameEn = document.getElementById('category-name-en').value.trim();
-
-    const categoryData = { ar: nameAr, en: nameEn, services: {} };
-
-    if (!nameAr || !nameEn) {
-        showError(translations['fill-required'][currentLanguage]);
-        return;
+// Render Services
+const renderServices = (categoryId, services) => {
+    if (!services || Object.keys(services).length === 0) {
+        return `<p class="no-data">${translations['no-services'][currentLanguage]}</p>`;
     }
 
+    return Object.entries(services)
+        .sort((a, b) => a[1].price - b[1].price) // Sort by price
+        .map(([serviceId, service]) => `
+            <div class="service-item" id="service-${serviceId}">
+                <div class="service-details">
+                    <h4>${service[`name_${currentLanguage}`]}</h4>
+                    <p class="service-info">
+                        <span class="duration">${service.duration}</span> | 
+                        <span class="price">${service.price} SAR</span>
+                    </p>
+                    ${service[`description_${currentLanguage}`] ? 
+                        `<p class="service-description">${service[`description_${currentLanguage}`]}</p>` : 
+                        ''}
+                </div>
+                <div class="service-actions">
+                    <button onclick="editService('${categoryId}', '${serviceId}')" class="edit-button">
+                        ${translations['edit'][currentLanguage]}
+                    </button>
+                    <button onclick="deleteService('${categoryId}', '${serviceId}')" class="delete-button">
+                        ${translations['delete'][currentLanguage]}
+                    </button>
+                </div>
+            </div>
+        `).join('');
+};
+
+// Service Functions
+window.editService = async (categoryId, serviceId) => {
     try {
         showLoading();
-        const newCategoryRef = db.ref('categories').push();
-        await newCategoryRef.set(categoryData);
-        hideModal();
-        showSuccess(translations['success-add'][currentLanguage]);
-    } catch (error) {
-        showError(translations['error-occurred'][currentLanguage]);
-        console.error(error);
-    } finally {
-        hideLoading();
-    }
-};
+        const snapshot = await db.ref(`categories/${categoryId}/services/${serviceId}`).once('value');
+        const service = snapshot.val();
 
-// Add Barber
-window.submitNewBarber = async () => {
-    const nameAr = document.getElementById('barber-name-ar').value.trim();
-    const nameEn = document.getElementById('barber-name-en').value.trim();
-    const workingHoursStart = document.getElementById('working-hours-start').value;
-    const workingHoursEnd = document.getElementById('working-hours-end').value;
-    const isActive = document.getElementById('barber-active').checked;
-
-    const barberData = {
-        name_ar: nameAr,
-        name_en: nameEn,
-        working_hours: {
-            start: workingHoursStart,
-            end: workingHoursEnd
-        },
-        active: isActive
-    };
-
-    if (!nameAr || !nameEn || !workingHoursStart || !workingHoursEnd) {
-        showError(translations['fill-required'][currentLanguage]);
-        return;
-    }
-
-    try {
-        showLoading();
-        const newBarberRef = db.ref('barbers').push();
-        await newBarberRef.set(barberData);
-        hideModal();
-        showSuccess(translations['success-add'][currentLanguage]);
-    } catch (error) {
-        showError(translations['error-occurred'][currentLanguage]);
-        console.error(error);
-    } finally {
-        hideLoading();
-    }
-};
-
-// Initialize Listeners
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('add-category-btn')?.addEventListener('click', () => {
-        const formHTML = `
-            <div class="form-group">
-                <label>${translations['category-name'][currentLanguage]} (عربي):</label>
-                <input type="text" id="category-name-ar" required>
-            </div>
-            <div class="form-group">
-                <label>${translations['category-name'][currentLanguage]} (English):</label>
-                <input type="text" id="category-name-en" required>
-            </div>
-            <button onclick="submitNewCategory()" class="submit-button">
-                ${translations['add'][currentLanguage]}
-            </button>
-        `;
-        showModal(translations['new-category'][currentLanguage], formHTML);
-    });
-
-    document.getElementById('add-barber-btn')?.addEventListener('click', () => {
-        const formHTML = `
-            <div class="form-group">
-                <label>${translations['barber-name'][currentLanguage]} (عربي):</label>
-                <input type="text" id="barber-name-ar" required>
-            </div>
-            <div class="form-group">
-                <label>${translations['barber-name'][currentLanguage]} (English):</label>
-                <input type="text" id="barber-name-en" required>
-            </div>
-            <div class="form-group">
-                <label>${translations['start-time'][currentLanguage]}:</label>
-                <input type="time" id="working-hours-start" required>
-            </div>
-            <div class="form-group">
-                <label>${translations['end-time'][currentLanguage]}:</label>
-                <input type="time" id="working-hours-end" required>
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="barber-active" checked>
-                    ${translations['active'][currentLanguage]}
-                </label>
-            </div>
-            <button onclick="submitNewBarber()" class="submit-button">
-                ${translations['add'][currentLanguage]}
-            </button>
-        `;
-        showModal(translations['new-barber'][currentLanguage], formHTML);
-    });
-});
-// Add Service
-window.addService = (categoryId) => {
-    const formHTML = `
-        <div class="form-group">
-            <label>${translations['service-name'][currentLanguage]} (عربي):</label>
-            <input type="text" id="service-name-ar" required>
-        </div>
-        <div class="form-group">
-            <label>${translations['service-name'][currentLanguage]} (English):</label>
-            <input type="text" id="service-name-en" required>
-        </div>
-        <div class="form-group">
-            <label>${translations['duration'][currentLanguage]}:</label>
-            <input type="text" id="service-duration" placeholder="e.g., 30m or 1h 30m" required>
-        </div>
-        <div class="form-group">
-            <label>${translations['price'][currentLanguage]}:</label>
-            <input type="number" id="service-price" min="0" step="1" required>
-        </div>
-        <div class="form-group">
-            <label>${translations['description'][currentLanguage]} (عربي):</label>
-            <textarea id="service-description-ar"></textarea>
-        </div>
-        <div class="form-group">
-            <label>${translations['description'][currentLanguage]} (English):</label>
-            <textarea id="service-description-en"></textarea>
-        </div>
-        <button onclick="submitNewService('${categoryId}')" class="submit-button">
-            ${translations['add'][currentLanguage]}
-        </button>
-    `;
-    showModal(translations['new-service'][currentLanguage], formHTML);
-};
-
-// Submit Service
-window.submitNewService = async (categoryId) => {
-    const nameAr = document.getElementById('service-name-ar').value.trim();
-    const nameEn = document.getElementById('service-name-en').value.trim();
-    const duration = document.getElementById('service-duration').value.trim();
-    const price = parseFloat(document.getElementById('service-price').value);
-    const descriptionAr = document.getElementById('service-description-ar').value.trim();
-    const descriptionEn = document.getElementById('service-description-en').value.trim();
-
-    const serviceData = {
-        name_ar: nameAr,
-        name_en: nameEn,
-        duration,
-        price,
-        description_ar: descriptionAr,
-        description_en: descriptionEn
-    };
-
-    if (!nameAr || !nameEn || !duration || isNaN(price) || price <= 0) {
-        showError(translations['fill-required'][currentLanguage]);
-        return;
-    }
-
-    try {
-        showLoading();
-        const newServiceRef = db.ref(`categories/${categoryId}/services`).push();
-        await newServiceRef.set(serviceData);
-        hideModal();
-        showSuccess(translations['success-add'][currentLanguage]);
-    } catch (error) {
-        showError(translations['error-occurred'][currentLanguage]);
-        console.error(error);
-    } finally {
-        hideLoading();
-    }
-};
-
-// Edit Category
-window.editCategory = (categoryId) => {
-    db.ref(`categories/${categoryId}`).once('value', (snapshot) => {
-        const category = snapshot.val();
-        if (!category) {
-            showError(translations['error-occurred'][currentLanguage]);
+        if (!service) {
+            showError('Service not found');
             return;
         }
+
         const formHTML = `
             <div class="form-group">
-                <label>${translations['category-name'][currentLanguage]} (عربي):</label>
-                <input type="text" id="edit-category-name-ar" value="${category.ar}" required>
+                <label>${translations['service-name'][currentLanguage]} (عربي):</label>
+                <input type="text" id="edit-service-name-ar" value="${service.name_ar}" required>
             </div>
             <div class="form-group">
-                <label>${translations['category-name'][currentLanguage]} (English):</label>
-                <input type="text" id="edit-category-name-en" value="${category.en}" required>
+                <label>${translations['service-name'][currentLanguage]} (English):</label>
+                <input type="text" id="edit-service-name-en" value="${service.name_en}" required>
             </div>
-            <button onclick="submitCategoryEdit('${categoryId}')" class="submit-button">
+            <div class="form-group">
+                <label>${translations['duration'][currentLanguage]}:</label>
+                <input type="text" id="edit-service-duration" value="${service.duration}" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['price'][currentLanguage]}:</label>
+                <input type="number" id="edit-service-price" value="${service.price}" min="0" step="1" required>
+            </div>
+            <div class="form-group">
+                <label>${translations['description'][currentLanguage]} (عربي):</label>
+                <textarea id="edit-service-description-ar">${service.description_ar || ''}</textarea>
+            </div>
+            <div class="form-group">
+                <label>${translations['description'][currentLanguage]} (English):</label>
+                <textarea id="edit-service-description-en">${service.description_en || ''}</textarea>
+            </div>
+            <button onclick="submitServiceEdit('${categoryId}', '${serviceId}')" class="submit-button">
                 ${translations['save'][currentLanguage]}
             </button>
         `;
         showModal(translations['edit'][currentLanguage], formHTML);
-    });
+    } catch (error) {
+        handleDatabaseError(error, 'editing service');
+    } finally {
+        hideLoading();
+    }
 };
 
-// Submit Edited Category
-window.submitCategoryEdit = async (categoryId) => {
-    const nameAr = document.getElementById('edit-category-name-ar').value.trim();
-    const nameEn = document.getElementById('edit-category-name-en').value.trim();
+window.submitServiceEdit = async (categoryId, serviceId) => {
+    const updatedData = {
+        name_ar: document.getElementById('edit-service-name-ar').value.trim(),
+        name_en: document.getElementById('edit-service-name-en').value.trim(),
+        duration: document.getElementById('edit-service-duration').value.trim(),
+        price: parseInt(document.getElementById('edit-service-price').value),
+        description_ar: document.getElementById('edit-service-description-ar').value.trim(),
+        description_en: document.getElementById('edit-service-description-en').value.trim()
+    };
 
-    if (!nameAr || !nameEn) {
-        showError(translations['fill-required'][currentLanguage]);
+    if (!updatedData.name_ar || !updatedData.name_en || !updatedData.duration || isNaN(updatedData.price)) {
+        showError(translations['required-fields'][currentLanguage]);
         return;
     }
 
     try {
         showLoading();
-        await db.ref(`categories/${categoryId}`).update({ ar: nameAr, en: nameEn });
+        await db.ref(`categories/${categoryId}/services/${serviceId}`).update(updatedData);
         hideModal();
         showSuccess(translations['success-update'][currentLanguage]);
     } catch (error) {
-        showError(translations['error-occurred'][currentLanguage]);
-        console.error(error);
+        handleDatabaseError(error, 'updating service');
     } finally {
         hideLoading();
     }
 };
 
-// Delete Category
-window.deleteCategory = async (categoryId) => {
+window.deleteService = async (categoryId, serviceId) => {
     if (!confirm(translations['confirm-delete'][currentLanguage])) return;
 
     try {
         showLoading();
-        await db.ref(`categories/${categoryId}`).remove();
+        await db.ref(`categories/${categoryId}/services/${serviceId}`).remove();
         showSuccess(translations['success-delete'][currentLanguage]);
     } catch (error) {
-        showError(translations['error-occurred'][currentLanguage]);
-        console.error(error);
+        handleDatabaseError(error, 'deleting service');
     } finally {
         hideLoading();
     }
 };
 
-// Update Categories UI
+// Categories and UI Functions
 const updateCategoriesUI = (categories) => {
     const container = document.getElementById('categories-list');
     if (!container) {
